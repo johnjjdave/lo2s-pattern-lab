@@ -29,13 +29,15 @@ jobs:
         run: corepack enable
 
       - name: Install desktop dependencies
-        run: pnpm --dir desktop install --frozen-lockfile
+        working-directory: desktop
+        run: pnpm install --frozen-lockfile
 
       - name: Build desktop interface
         run: npx vite build --config desktop/vite.config.ts
 
       - name: Package portable Windows application
-        run: pnpm --dir desktop exec electron-builder --win portable --x64
+        working-directory: desktop
+        run: pnpm exec electron-builder --win portable --x64
 
       - name: Create SHA-256 checksum
         shell: pwsh
