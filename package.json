@@ -1,7 +1,17 @@
 {
-  "name": "site-creator-vinext-starter",
-  "version": "0.1.0",
+  "name": "lo2s-pattern-lab",
+  "version": "1.0.0",
   "private": true,
+  "description": "Pixel-perfect LED test pattern and Resolume pixel map generator.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnjjdave/lo2s-pattern-lab.git"
+  },
+  "homepage": "https://lo2s-pattern-lab.lo2s-4908.chatgpt.site/",
+  "bugs": {
+    "url": "https://github.com/johnjjdave/lo2s-pattern-lab/issues"
+  },
   "engines": {
     "node": ">=22.13.0"
   },

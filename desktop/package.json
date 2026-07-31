@@ -1,11 +1,16 @@
 {
   "name": "lo2s-pattern-lab-desktop",
-  "version": "1.0.1",
-  "packageManager": "traversal@1.0.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "Offline metric LED test pattern generator for LO2S",
+  "description": "Offline pixel-perfect LED test pattern and Resolume pixel map generator.",
+  "license": "MIT",
   "main": "electron-main.cjs",
-  "author": "LO2S",
+  "author": "LO2S Pattern Lab contributors",
+  "homepage": "https://github.com/johnjjdave/lo2s-pattern-lab",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/johnjjdave/lo2s-pattern-lab.git"
+  },
   "scripts": {
     "build": "electron-builder --win portable --x64"
   },

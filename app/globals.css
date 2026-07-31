@@ -47,3 +47,7 @@ button,input,select{font:inherit;color:inherit}button{cursor:pointer}button:disa
 .panel-action{width:100%;height:40px;border:1px solid #71787b;background:#292d2f;color:#fff;font:780 10px/1 "Geist Mono";letter-spacing:.07em;text-transform:uppercase}.panel-action:hover{background:#34393c}
 @media(max-height:820px){.control-groups{gap:8px}.control-group{padding:7px;gap:5px}.control-group-title{padding-bottom:5px}.inline-select{height:32px}.control-group .overlay-row{height:32px}.panel-action{height:34px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+/* The viewer owns all scaling so fit, 1:1, and cursor zoom share one pixel model. */
+.canvas-stage canvas,.preview-shell:fullscreen[data-fullscreen-mode=fit] canvas{max-width:none;max-height:none}
+.canvas-stage{position:relative}.canvas-stage.selecting{cursor:crosshair}.selection-marquee{position:absolute;z-index:4;pointer-events:none;border:1px solid #fff;background:rgba(255,255,255,.12);box-shadow:0 0 0 1px rgba(0,0,0,.65) inset}

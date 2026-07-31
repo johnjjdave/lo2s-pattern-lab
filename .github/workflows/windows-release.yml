@@ -1,0 +1,60 @@
+name: Windows release
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install web dependencies
+        run: npm ci
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install desktop dependencies
+        run: pnpm --dir desktop install --frozen-lockfile
+
+      - name: Build desktop interface
+        run: npx vite build --config desktop/vite.config.ts
+
+      - name: Package portable Windows application
+        run: pnpm --dir desktop exec electron-builder --win portable --x64
+
+      - name: Create SHA-256 checksum
+        shell: pwsh
+        run: |
+          $artifact = Get-ChildItem desktop/release/*-Portable.exe | Select-Object -First 1
+          $hash = (Get-FileHash $artifact.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($artifact.Name)" | Set-Content -Encoding ascii desktop/release/SHA256SUMS.txt
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LO2S-Pattern-Lab-Windows
+          path: |
+            desktop/release/*-Portable.exe
+            desktop/release/SHA256SUMS.txt
+
+      - name: Attach files to GitHub release
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" desktop/release/*-Portable.exe desktop/release/SHA256SUMS.txt --clobber
