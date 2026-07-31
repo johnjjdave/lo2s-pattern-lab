@@ -1,6 +1,6 @@
 {
   "name": "lo2s-pattern-lab",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Pixel-perfect LED test pattern and Resolume pixel map generator.",
   "license": "MIT",

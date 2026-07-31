@@ -1,6 +1,6 @@
 {
   "name": "lo2s-pattern-lab-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "packageManager": "pnpm@11.18.0",
   "private": true,
   "description": "Offline pixel-perfect LED test pattern and Resolume pixel map generator.",
@@ -31,6 +31,7 @@
       "dist/**/*",
       "icons/**/*",
       "electron-main.cjs",
+      "preload.cjs",
       "package.json"
     ],
     "win": {

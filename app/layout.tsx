@@ -16,8 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
     description:
       "Metric LED test patterns, linked wall calculations and Resolume pixel maps for LO2S technical production teams.",
     icons: {
-      icon: "/brand/lo2s-logo-white.svg",
-      shortcut: "/brand/lo2s-logo-white.svg",
+      icon: "/brand/lo2s-pattern-lab-icon.png",
+      shortcut: "/brand/lo2s-pattern-lab-icon.png",
+      apple: "/brand/lo2s-pattern-lab-icon.png",
     },
     openGraph: {
       title: "LO2S Pattern Lab",
@@ -25,10 +26,10 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       images: [
         {
-          url: `${origin}/og.png`,
-          width: 1536,
-          height: 1024,
-          alt: "LO2S Pattern Lab metric LED test pattern generator",
+          url: `${origin}/brand/github-social-preview.png`,
+          width: 1280,
+          height: 640,
+          alt: "LO2S Pattern Lab",
         },
       ],
     },
@@ -36,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       title: "LO2S Pattern Lab",
       description: "Metric LED test patterns and Resolume pixel-map exports for technical production.",
-      images: [`${origin}/og.png`],
+      images: [`${origin}/brand/github-social-preview.png`],
     },
   };
 }
