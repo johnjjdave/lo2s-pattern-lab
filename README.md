@@ -2,12 +2,12 @@
 
 LO2S Pattern Lab is an open-source, pixel-perfect LED screen test-pattern and Resolume pixel-map generator. It is designed for technical production workflows where physical dimensions, native pixel resolution, slice geometry, and export accuracy matter.
 
-[Open the hosted preview](https://lo2s-pattern-lab.lo2s-4908.chatgpt.site/) · [Download the latest Windows release](https://github.com/johnjjdave/lo2s-pattern-lab/releases/latest)
+[Download the latest Windows release](https://github.com/johnjjdave/lo2s-pattern-lab/releases/latest)
 
 ## Highlights
 
 - Metric wall calculator linking physical width, height, raster size, and pixel pitch
-- Arithmetic expressions directly inside number fields, such as `120*28`
+- Arithmetic expressions directly inside number fields
 - Metric grid, cabinet IDs, color bars, grayscale, and native pixel-check patterns
 - Configurable labels, guides, circles, safe area, center marker, and uploaded logos
 - Resolume Advanced Output XML import with input-map and per-screen output-map rendering
