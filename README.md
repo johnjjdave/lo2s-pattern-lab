@@ -71,9 +71,11 @@ The desktop application processes projects, Resolume XML files, logos, source fr
 
 ## Recommended Resolume workflow
 
+**Physical accuracy depends on pixel pitch:** Set the pixel pitch to the exact manufacturer-specified pitch of the real LED product before arranging the screens in 3D. Pattern Lab uses the slice raster dimensions and configured pixel pitch to calculate each screen's physical width and height; an incorrect pitch produces an incorrectly scaled 3D simulation even when the Resolume XML pixel map is correct.
+
 1. Configure the composition and slices in Resolume Advanced Output.
 2. Open **Resolume Pixel Map** in Pattern Lab and import the XML preset.
-3. Confirm the composition, physical scale, slice sizes, and pixel-map output.
+3. Set the **Pixel pitch** to the exact real-world pitch of the LED product, then confirm the composition, physical scale, slice sizes, and pixel-map output.
 4. Open **3D Simulation** and arrange the slices to match the physical LED setup.
 5. Select Pattern Generator, Video Devices, NDI, or Spout as the global source.
 6. Apply per-slice source overrides only where needed.
