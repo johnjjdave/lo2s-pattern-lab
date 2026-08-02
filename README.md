@@ -10,6 +10,8 @@ LO2S Pattern Lab is an open-source LED test-pattern, Resolume pixel-map, and 3D 
 
 [Open the web app](https://patternlab.lo2s.com/) · [Download the Windows portable app](https://github.com/johnjjdave/lo2s-pattern-lab/releases/tag/v1.2.0-beta) · [View the source tag](https://github.com/johnjjdave/lo2s-pattern-lab/tree/v1.2.0-beta)
 
+[Read the complete v1.0.1 → v1.2.0 Beta changelog](CHANGELOG.md). Future releases follow the documented [release process](RELEASING.md), including separate new-feature, improvement, bug-fix, compatibility, and known-limitation sections.
+
 ## What is included
 
 ### Test Patterns
