@@ -20,6 +20,7 @@ LO2S Pattern Lab is an open-source LED test-pattern, Resolume pixel-map, and 3D 
 - Arithmetic expressions inside supported numeric fields
 - Metric grid, cabinet IDs, color bars, grayscale, and native pixel-check patterns
 - Configurable labels, guides, circles, safe area, center marker, and uploaded logos
+- Unified compact numeric steppers and adjustable line width for the metric grid, borders, cross, circles, and safe area
 - Pixel-accurate Fit Canvas and Actual 1:1 viewing with cursor-focused zoom and panning
 - Black or transparent PNG export with remembered save locations in the desktop app
 
@@ -28,6 +29,7 @@ LO2S Pattern Lab is an open-source LED test-pattern, Resolume pixel-map, and 3D 
 - Resolume Advanced Output XML import
 - Composition input-map and per-screen output-map rendering
 - Automatic per-slice color palettes with global and selected-slice overrides
+- One-click P1.2, P1.5, P1.9, P2.5, P2.6, P2.9, P3.9, P4.8, P5.9, and P10 pixel-pitch presets while retaining custom arithmetic entry
 - Click, multi-select, and drag-marquee slice selection
 - Per-slice information, physical dimensions, and output-map diagnostics
 - Selected-slice and multi-screen PNG export
@@ -40,7 +42,7 @@ LO2S Pattern Lab is an open-source LED test-pattern, Resolume pixel-map, and 3D 
 - Emissive LED materials that preserve the source color and brightness
 - Move and rotate gizmos with local/world axes and arithmetic-enabled transform fields
 - Bottom-left, bottom-centre, or bottom-right pivots globally or per slice
-- Horizontal and vertical screen curvature with smooth curved extrusion
+- Mutually exclusive horizontal or vertical screen curvature from -360° to +360° with smooth curved extrusion and closed full-cylinder seams
 - Configurable extrusion depth, floor, metre grid, and scene background brightness
 - Multi-selection, undo/redo, saved camera state, and beta project save/load
 - GLB, glTF package, OBJ package, and MVR 1.5 scene export with geometry, UVs, names, and transforms
@@ -51,10 +53,11 @@ The Windows desktop beta supports:
 
 - Pattern Generator at native quality
 - Video Devices such as webcams and capture devices
-- NDI source discovery and reception
+- NDI source discovery and reception through a low-copy shared-memory desktop transport
 - Spout sender discovery and reception
 - Low Latency and High Quality modes
 - Global source routing with per-slice overrides
+- Native-source performance instrumentation for receiver, conversion, copy, and displayed-frame rates
 
 NDI and Spout require the Windows desktop application and its native source bridge. They are not available in the hosted browser version. Higher-resolution live feeds can increase GPU, decoding, and network load depending on the source resolution and number of active feeds.
 

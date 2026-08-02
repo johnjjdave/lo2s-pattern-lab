@@ -5,20 +5,24 @@
 #include <io.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <iterator>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
 
 #include <Processing.NDI.Lib.h>
 #include "SpoutLibrary.h"
+#include "shared-frame.h"
 
 namespace {
 
@@ -329,6 +333,49 @@ void status(const std::string& state, const std::string& name, unsigned width = 
             << ",\"height\":" << height << ",\"fps\":" << fps << "}" << std::endl;
 }
 
+struct SharedFrameMapping {
+  HANDLE handle = nullptr;
+  lo2s::SharedFrameHeader* header = nullptr;
+  std::string name;
+
+  ~SharedFrameMapping() { close(); }
+  void close() {
+    if (header) UnmapViewOfFile(header);
+    if (handle) CloseHandle(handle);
+    header = nullptr;
+    handle = nullptr;
+    name.clear();
+  }
+  bool create(unsigned width, unsigned height, unsigned generation) {
+    close();
+    const auto payload = static_cast<std::uint32_t>(static_cast<std::uint64_t>(width) * height * 4);
+    const auto total = lo2s::shared_mapping_bytes(payload);
+    name = "Local\\LO2S-NDI-" + std::to_string(GetCurrentProcessId()) + "-" + std::to_string(generation);
+    handle = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, static_cast<DWORD>(total >> 32), static_cast<DWORD>(total), name.c_str());
+    if (!handle) return false;
+    header = static_cast<lo2s::SharedFrameHeader*>(MapViewOfFile(handle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, total));
+    if (!header) { close(); return false; }
+    ZeroMemory(header, total);
+    header->magic = lo2s::kSharedFrameMagic;
+    header->version = lo2s::kSharedFrameVersion;
+    header->header_bytes = sizeof(lo2s::SharedFrameHeader);
+    header->slot_count = lo2s::kSharedFrameSlots;
+    header->width = width;
+    header->height = height;
+    header->stride = width * 4;
+    header->payload_bytes = payload;
+    header->latest_slot = -1;
+    return true;
+  }
+};
+
+void status_shared(const std::string& source_name, const SharedFrameMapping& shared, double fps) {
+  std::cerr << "{\"status\":\"connected\",\"name\":\"" << json_escape(source_name)
+            << "\",\"width\":" << shared.header->width << ",\"height\":" << shared.header->height
+            << ",\"fps\":" << fps << ",\"transport\":\"shared-memory\",\"mapping\":\""
+            << json_escape(shared.name) << "\",\"payloadBytes\":" << shared.header->payload_bytes << "}" << std::endl;
+}
+
 int capture_ndi(const std::string& requested_name, bool low_latency) {
   NdiApi ndi;
   std::string error;
@@ -387,52 +434,61 @@ int capture_ndi(const std::string& requested_name, bool low_latency) {
   }
 
   status("connecting", selected_name);
+  SharedFrameMapping shared;
   std::vector<unsigned char> output_pixels;
-  bool announced = false;
-  auto last_output = std::chrono::steady_clock::now() - std::chrono::seconds(1);
+  unsigned mapping_generation = 0;
+  LONG64 captured_frames = 0;
+  LONG64 published_frames = 0;
+  LONG64 overwritten_frames = 0;
+  LONG64 conversion_microseconds = 0;
+  auto last_conversion = std::chrono::steady_clock::now() - std::chrono::seconds(1);
   while (!stop_requested()) {
     NDIlib_video_frame_v2_t frame{};
-    const auto type = ndi.api->recv_capture_v2(receiver, &frame, nullptr, nullptr, 1000);
+    const auto type = ndi.api->recv_capture_v2(receiver, &frame, nullptr, nullptr, 100);
+    if (type == NDIlib_frame_type_error) { status("error", "The NDI source connection was lost."); break; }
     if (type != NDIlib_frame_type_video) continue;
-    // The renderer deliberately owns only one frame at a time. Drain any NDI
-    // frames that arrived during that hand-off and process the newest one so
-    // load causes frame drops instead of accumulating visible latency.
-    bool connection_lost = false;
+    captured_frames += 1;
     for (int queued = 0; queued < 32; ++queued) {
       NDIlib_video_frame_v2_t newer{};
       const auto newer_type = ndi.api->recv_capture_v2(receiver, &newer, nullptr, nullptr, 0);
-      if (newer_type == NDIlib_frame_type_video) {
-        ndi.api->recv_free_video_v2(receiver, &frame);
-        frame = newer;
-        continue;
-      }
-      if (newer_type == NDIlib_frame_type_error) connection_lost = true;
-      break;
-    }
-    if (connection_lost) {
+      if (newer_type != NDIlib_frame_type_video) break;
       ndi.api->recv_free_video_v2(receiver, &frame);
-      status("error", "The NDI source connection was lost.");
-      break;
+      frame = newer;
+      captured_frames += 1;
     }
     const auto now = std::chrono::steady_clock::now();
-    const auto minimum_interval = std::chrono::milliseconds(low_latency ? 0 : 33);
-    if (now - last_output < minimum_interval) { ndi.api->recv_free_video_v2(receiver, &frame); continue; }
-    last_output = now;
-    unsigned output_width = 0;
-    unsigned output_height = 0;
+    const auto minimum_interval = std::chrono::milliseconds(low_latency ? 16 : 33);
+    if (now - last_conversion < minimum_interval) { ndi.api->recv_free_video_v2(receiver, &frame); continue; }
+    last_conversion = now;
+    unsigned output_width = 0, output_height = 0;
+    const auto conversion_started = std::chrono::steady_clock::now();
     auto* output = convert_ndi_frame(frame, low_latency ? kNdiLowLatencyMaxWidth : kNdiHighQualityMaxWidth, output_pixels, output_width, output_height);
-    if (!output) {
-      ndi.api->recv_free_video_v2(receiver, &frame);
-      status("error", "The NDI source returned an unsupported pixel format.");
-      break;
-    }
-    if (!announced) {
-      status("connected", selected_name, output_width, output_height, frame.frame_rate_D ? static_cast<double>(frame.frame_rate_N) / frame.frame_rate_D : 0);
-      announced = true;
-    }
-    const bool written = write_frame(output, output_width, output_height, frame.frame_rate_N, frame.frame_rate_D);
+    conversion_microseconds += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - conversion_started).count();
+    const double fps = frame.frame_rate_D ? static_cast<double>(frame.frame_rate_N) / frame.frame_rate_D : 0;
     ndi.api->recv_free_video_v2(receiver, &frame);
-    if (!written || !wait_for_frame_acknowledgement()) break;
+    if (!output) { status("error", "The NDI source returned an unsupported pixel format."); break; }
+    if (!shared.header || shared.header->width != output_width || shared.header->height != output_height) {
+      if (!shared.create(output_width, output_height, ++mapping_generation)) { status("error", "Unable to allocate the NDI shared-memory frame buffer."); break; }
+      shared.header->captured_frames = captured_frames;
+      shared.header->published_frames = published_frames;
+      shared.header->overwritten_frames = overwritten_frames;
+      shared.header->conversion_microseconds = conversion_microseconds;
+      status_shared(selected_name, shared, fps);
+    }
+    const LONG64 next_sequence = published_frames + 1;
+    const LONG64 consumed = InterlockedCompareExchange64(&shared.header->consumer_sequence, 0, 0);
+    if (next_sequence - consumed > static_cast<LONG64>(lo2s::kSharedFrameSlots)) overwritten_frames += 1;
+    const auto slot = static_cast<std::uint32_t>((next_sequence - 1) % lo2s::kSharedFrameSlots);
+    std::memcpy(lo2s::shared_slot(shared.header, slot), output, shared.header->payload_bytes);
+    MemoryBarrier();
+    InterlockedExchange64(&shared.header->slot_sequences[slot], next_sequence);
+    InterlockedExchange(&shared.header->latest_slot, static_cast<LONG>(slot));
+    InterlockedExchange64(&shared.header->latest_sequence, next_sequence);
+    published_frames = next_sequence;
+    InterlockedExchange64(&shared.header->captured_frames, captured_frames);
+    InterlockedExchange64(&shared.header->published_frames, published_frames);
+    InterlockedExchange64(&shared.header->overwritten_frames, overwritten_frames);
+    InterlockedExchange64(&shared.header->conversion_microseconds, conversion_microseconds);
   }
   ndi.api->recv_destroy(receiver);
   return 0;
@@ -498,6 +554,32 @@ int capture_spout(const std::string& requested_name, bool low_latency) {
   return 0;
 }
 
+int self_test_shared_memory() {
+  SharedFrameMapping shared;
+  if (!shared.create(4, 2, 1)) return 2;
+  status_shared("LO2S shared-memory self-test", shared, 60);
+  for (LONG64 sequence = 1; sequence <= 24; ++sequence) {
+    const auto slot = static_cast<std::uint32_t>((sequence - 1) % lo2s::kSharedFrameSlots);
+    auto* pixels = lo2s::shared_slot(shared.header, slot);
+    for (std::uint32_t index = 0; index < shared.header->payload_bytes; index += 4) {
+      pixels[index] = static_cast<unsigned char>(sequence);
+      pixels[index + 1] = 80;
+      pixels[index + 2] = 160;
+      pixels[index + 3] = 255;
+    }
+    MemoryBarrier();
+    InterlockedExchange64(&shared.header->slot_sequences[slot], sequence);
+    InterlockedExchange(&shared.header->latest_slot, static_cast<LONG>(slot));
+    InterlockedExchange64(&shared.header->latest_sequence, sequence);
+    InterlockedExchange64(&shared.header->captured_frames, sequence);
+    InterlockedExchange64(&shared.header->published_frames, sequence);
+    InterlockedExchange64(&shared.header->conversion_microseconds, sequence * 100);
+    Sleep(16);
+  }
+  Sleep(500);
+  return 0;
+}
+
 std::string argument_value(int argc, char** argv, const std::string& name) {
   for (int index = 1; index + 1 < argc; ++index) if (argv[index] == name) return argv[index + 1];
   return {};
@@ -509,6 +591,7 @@ int main(int argc, char** argv) {
   _setmode(_fileno(stdout), _O_BINARY);
   const std::string operation = argc > 1 ? argv[1] : "";
   const std::string kind = argc > 2 ? argv[2] : "";
+  if (operation == "--self-test-shared") return self_test_shared_memory();
   if (operation == "--list") {
     if (kind == "ndi") return list_ndi();
     if (kind == "spout") return list_spout();
