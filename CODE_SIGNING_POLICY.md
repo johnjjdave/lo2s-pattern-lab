@@ -14,7 +14,6 @@ LO2S Pattern Lab releases are built from the public source repository at <https:
 - Release artifacts must be produced from a tagged commit by the repository's automated Windows build workflow.
 - Every signing request requires manual approval by an approver.
 - Product name and version metadata must match the GitHub release tag.
-- SHA-256 checksums are published alongside downloadable Windows artifacts.
 
 ## Privacy policy
 
