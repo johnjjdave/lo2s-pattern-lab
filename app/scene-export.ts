@@ -379,7 +379,7 @@ function createMvrXml(options: SceneExportOptions, geometryFilename: string) {
   const layerUuid = deterministicUuid(`lo2s:layer:${options.projectName}`);
   const sceneUuid = deterministicUuid(`lo2s:scene:${options.projectName}`);
   return `<?xml version="1.0" encoding="UTF-8"?>
-<GeneralSceneDescription verMajor="1" verMinor="5" provider="LO2S Pattern Lab" providerVersion="1.2.0-beta.8">
+<GeneralSceneDescription verMajor="1" verMinor="5" provider="LO2S Pattern Lab" providerVersion="1.2.0-beta">
   <UserData><Data provider="LO2S Pattern Lab" ver="1.2"><SliceCount>${options.slices.length}</SliceCount></Data></UserData>
   <Scene>
     <AUXData/>

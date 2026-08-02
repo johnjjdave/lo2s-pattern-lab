@@ -6,7 +6,7 @@
 
 LO2S Pattern Lab is an open-source, pixel-perfect LED screen test-pattern and Resolume pixel-map generator. It is designed for technical production workflows where physical dimensions, native pixel resolution, slice geometry, and export accuracy matter.
 
-[Open the web app](https://patternlab.lo2s.com/) · [Download the latest Windows release](https://github.com/johnjjdave/lo2s-pattern-lab/releases/latest)
+[Open the web app](https://patternlab.lo2s.com/) · [Download LO2S Pattern Lab v1.2.0 Beta](https://github.com/johnjjdave/lo2s-pattern-lab/releases/tag/v1.2.0-beta)
 
 ## Highlights
 
@@ -20,12 +20,13 @@ LO2S Pattern Lab is an open-source, pixel-perfect LED screen test-pattern and Re
 - Pixel-accurate Fit Canvas and Actual 1:1 viewing, cursor-focused zoom, and panning
 - Black or transparent PNG export, selected-slice export, and multi-screen output export
 - Local project save/load and an offline Windows desktop build
+- Experimental 3D Simulation with physical LED geometry, NDI/Spout inputs, curved screens, saved transforms, and scene export
 
 ## Windows release
 
-Download the portable Windows build from [GitHub Releases](https://github.com/johnjjdave/lo2s-pattern-lab/releases).
+The primary Windows download is [LO2S Pattern Lab v1.2.0 Beta](https://github.com/johnjjdave/lo2s-pattern-lab/releases/tag/v1.2.0-beta). It includes the experimental 3D Simulation workspace alongside Test Patterns and Resolume Pixel Map.
 
-Version 1.0.1 is an unsigned open-source release. Windows Defender SmartScreen may therefore show an “unknown publisher” warning. The project is preparing an application for free open-source signing through SignPath Foundation. You can verify a download using the SHA-256 checksum published with each release.
+Version 1.2.0 Beta is an unsigned open-source beta release. Windows Defender SmartScreen may therefore show an “unknown publisher” warning. The project is preparing an application for free open-source signing through SignPath Foundation. You can verify a download using the SHA-256 checksum published with each release.
 
 The desktop application runs locally and does not upload projects, Resolume XML files, logos, or exported images.
 

@@ -26,13 +26,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+
+      - name: Enable pnpm
+        run: corepack enable
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build website
-        run: npx vite build --config desktop/vite.config.ts
+        run: pnpm exec vite build --config desktop/vite.config.ts
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
