@@ -2,15 +2,15 @@
   <img src="public/brand/lo2s-pattern-lab-icon.png" width="180" alt="LO2S Pattern Lab icon">
 </p>
 
-# LO2S Pattern Lab
+# LO2S - Pattern Lab
 
 LO2S Pattern Lab is an open-source LED test-pattern, Resolume pixel-map, and 3D WYSIWYG simulation workspace. It is designed for technical production workflows.
 
 **Current release: LO2S Pattern Lab v1.2.0 Beta**
 
-[Open the web app](https://patternlab.lo2s.com/) · [Download the Windows portable app](https://github.com/johnjjdave/lo2s-pattern-lab/releases/tag/v1.2.0-beta) ·
+[Open the web app](https://patternlab.lo2s.com/) · [Download the Windows portable app](https://github.com/johnjjdave/lo2s-pattern-lab/releases/tag/v1.2.0-beta)
 
-[Read the complete v1.0.1 → v1.2.0 Beta changelog](CHANGELOG.md).
+[Read the complete v1.0.1 → v1.2.0 Beta changelog](CHANGELOG.md)
 
 ## What is included
 
