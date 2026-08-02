@@ -1,9 +1,9 @@
 {
   "name": "lo2s-pattern-lab-desktop",
-  "version": "1.0.1",
+  "version": "1.2.0-beta.8",
   "packageManager": "pnpm@11.18.0",
   "private": true,
-  "description": "Offline pixel-perfect LED test pattern and Resolume pixel map generator.",
+  "description": "Experimental LO2S Pattern Lab 3D simulation beta.",
   "license": "MIT",
   "main": "electron-main.cjs",
   "author": "LO2S Pattern Lab contributors",
@@ -20,16 +20,20 @@
     "electron-builder": "26.15.3"
   },
   "build": {
-    "appId": "com.lo2s.patternlab",
-    "productName": "LO2S Pattern Lab",
-    "artifactName": "LO2S-Pattern-Lab-${version}-Portable.${ext}",
+    "appId": "com.lo2s.patternlab.3dbeta",
+    "productName": "LO2S Pattern Lab 3D Beta",
+    "artifactName": "LO2S-Pattern-Lab-3D-Beta-${version}-Portable.${ext}",
     "asar": true,
+    "asarUnpack": [
+      "native/**/*"
+    ],
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
       "icons/**/*",
+      "native/**/*",
       "electron-main.cjs",
       "preload.cjs",
       "package.json"
