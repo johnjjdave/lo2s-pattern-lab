@@ -1,7 +1,9 @@
 const { app, BrowserWindow, dialog, ipcMain, protocol, session } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
+const { execFile, spawn } = require("node:child_process");
 const { fileURLToPath } = require("node:url");
+const { promisify } = require("node:util");
 
 const appRoot = __dirname;
 const MAX_XML_BYTES = 32 * 1024 * 1024;
@@ -10,6 +12,110 @@ let linkedWatcher = null;
 let linkedPoller = null;
 let linkedDebounce = null;
 let lastLinkedSignature = "";
+let nativeSourceProcess = null;
+let nativeSourceOwner = null;
+let nativeFramePending = false;
+let exportDirectories = null;
+const execFileAsync = promisify(execFile);
+let nativeBridgePath = path.join(appRoot, "native", "lo2s-source-bridge.exe");
+
+async function loadExportDirectories() {
+  if (exportDirectories) return exportDirectories;
+  try { exportDirectories = JSON.parse(await fs.promises.readFile(path.join(app.getPath("userData"), "export-locations.json"), "utf8")); }
+  catch { exportDirectories = {}; }
+  return exportDirectories;
+}
+
+async function rememberExportDirectory(category, filePath) {
+  const directories = await loadExportDirectories();
+  directories[category] = path.dirname(filePath);
+  await fs.promises.mkdir(app.getPath("userData"), { recursive: true });
+  await fs.promises.writeFile(path.join(app.getPath("userData"), "export-locations.json"), JSON.stringify(directories));
+}
+
+async function prepareNativeBridge() {
+  if (!app.isPackaged) return;
+  const bundledDirectory = path.join(process.resourcesPath, "app.asar.unpacked", "native");
+  const installedDirectory = path.join(app.getPath("userData"), "native", app.getVersion());
+  await fs.promises.mkdir(installedDirectory, { recursive: true });
+  for (const filename of ["lo2s-source-bridge.exe", "SpoutLibrary.dll"]) {
+    await fs.promises.copyFile(path.join(bundledDirectory, filename), path.join(installedDirectory, filename));
+  }
+  nativeBridgePath = path.join(installedDirectory, "lo2s-source-bridge.exe");
+}
+
+class NativeFrameParser {
+  constructor(onFrame) {
+    this.chunks = [];
+    this.byteLength = 0;
+    this.expectedPayload = null;
+    this.header = null;
+    this.onFrame = onFrame;
+  }
+
+  push(chunk) {
+    this.chunks.push(chunk);
+    this.byteLength += chunk.length;
+    while (true) {
+      if (!this.header) {
+        if (this.byteLength < 32) return;
+        const header = this.consume(32);
+        if (header.readUInt32LE(0) !== 0x4632534c || header.readUInt32LE(4) !== 1) throw new Error("The native source bridge returned an invalid frame.");
+        this.header = {
+          width: header.readUInt32LE(8), height: header.readUInt32LE(12), stride: header.readUInt32LE(16),
+          fpsN: header.readUInt32LE(20), fpsD: header.readUInt32LE(24),
+        };
+        this.expectedPayload = header.readUInt32LE(28);
+        if (!this.expectedPayload || this.expectedPayload > 256 * 1024 * 1024) throw new Error("The native source frame is outside the supported size.");
+      }
+      if (this.byteLength < this.expectedPayload) return;
+      const data = this.consume(this.expectedPayload);
+      const frame = { ...this.header, data };
+      this.header = null;
+      this.expectedPayload = null;
+      this.onFrame(frame);
+    }
+  }
+
+  consume(size) {
+    const result = Buffer.allocUnsafe(size);
+    let offset = 0;
+    while (offset < size) {
+      const chunk = this.chunks[0];
+      const count = Math.min(chunk.length, size - offset);
+      chunk.copy(result, offset, 0, count);
+      offset += count;
+      this.byteLength -= count;
+      if (count === chunk.length) this.chunks.shift(); else this.chunks[0] = chunk.subarray(count);
+    }
+    return result;
+  }
+}
+
+async function stopNativeSource() {
+  const child = nativeSourceProcess;
+  nativeSourceProcess = null;
+  nativeSourceOwner = null;
+  nativeFramePending = false;
+  if (!child || child.killed) return;
+  try { child.stdin?.write("q"); } catch {}
+  await new Promise((resolve) => {
+    let settled = false;
+    const finish = () => { if (settled) return; settled = true; clearTimeout(timer); resolve(); };
+    const timer = setTimeout(() => { try { child.kill(); } catch {} finish(); }, 900);
+    child.once("exit", finish);
+  });
+}
+
+async function listNativeSources(kind) {
+  if (!fs.existsSync(nativeBridgePath)) return { ok: false, error: "The native source receiver is missing from this beta." };
+  try {
+    const { stdout } = await execFileAsync(nativeBridgePath, ["--list", kind], { windowsHide: true, timeout: 11000, maxBuffer: 1024 * 1024 });
+    return JSON.parse(stdout.trim());
+  } catch (error) {
+    return { ok: false, error: error.message || "Unable to scan native sources." };
+  }
+}
 
 function resolveFileRequest(requestUrl) {
   const parsed = new URL(requestUrl);
@@ -115,15 +221,28 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      backgroundThrottling: false,
     },
   });
 
   window.once("ready-to-show", () => window.show());
-  window.on("closed", stopResolumeLink);
+  const reportFullscreen = () => {
+    if (!window.isDestroyed()) window.webContents.send("viewer:fullscreen-changed", window.isFullScreen());
+  };
+  window.on("enter-full-screen", reportFullscreen);
+  window.on("leave-full-screen", reportFullscreen);
+  window.webContents.on("before-input-event", (event, input) => {
+    if (input.key !== "Escape" || !window.isFullScreen()) return;
+    event.preventDefault();
+    window.setFullScreen(false);
+  });
+  window.on("closed", () => { stopResolumeLink(); void stopNativeSource(); });
   window.loadFile(path.join(appRoot, "dist", "index.html"));
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  try { await prepareNativeBridge(); }
+  catch (error) { console.error("Unable to prepare native source bridge:", error); }
   protocol.interceptFileProtocol("file", (request, callback) => callback({ path: resolveFileRequest(request.url) }));
 
   ipcMain.handle("resolume:choose-xml", async () => {
@@ -148,13 +267,99 @@ app.whenReady().then(() => {
 
   ipcMain.handle("resolume:unlink", async () => { stopResolumeLink(); return { ok: true }; });
 
+  ipcMain.handle("source:list", async (_event, kind) => {
+    if (kind !== "ndi" && kind !== "spout") return { ok: false, error: "Choose NDI or Spout before scanning." };
+    return listNativeSources(kind);
+  });
+
+  ipcMain.handle("source:connect", async (event, payload) => {
+    const kind = payload?.kind;
+    if (kind !== "ndi" && kind !== "spout") return { ok: false, error: "Choose NDI or Spout before connecting." };
+    if (!fs.existsSync(nativeBridgePath)) return { ok: false, error: "The native source receiver is missing from this beta." };
+    await stopNativeSource();
+    const args = ["--capture", kind, "--source", String(payload?.sourceId || ""), "--quality", payload?.quality === "quality" ? "quality" : "latency"];
+    const child = spawn(nativeBridgePath, args, { windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
+    nativeSourceProcess = child;
+    nativeSourceOwner = event.sender;
+    const parser = new NativeFrameParser((frame) => {
+      if (!nativeSourceOwner || nativeSourceOwner.isDestroyed() || nativeFramePending) return;
+      nativeFramePending = true;
+      nativeSourceOwner.send("source:frame", frame);
+    });
+    child.stdout.on("data", (chunk) => {
+      try { parser.push(chunk); }
+      catch (error) { if (nativeSourceOwner && !nativeSourceOwner.isDestroyed()) nativeSourceOwner.send("source:status", { status: "error", name: error.message }); void stopNativeSource(); }
+    });
+    let stderrBuffer = "";
+    child.stderr.on("data", (chunk) => {
+      stderrBuffer += chunk.toString("utf8");
+      const lines = stderrBuffer.split(/\r?\n/);
+      stderrBuffer = lines.pop() || "";
+      for (const line of lines) {
+        if (!line.trim() || !nativeSourceOwner || nativeSourceOwner.isDestroyed()) continue;
+        try { nativeSourceOwner.send("source:status", JSON.parse(line)); }
+        catch { nativeSourceOwner.send("source:status", { status: "message", name: line.trim() }); }
+      }
+    });
+    child.once("error", (error) => {
+      if (nativeSourceOwner && !nativeSourceOwner.isDestroyed()) nativeSourceOwner.send("source:status", { status: "error", name: error.message });
+      void stopNativeSource();
+    });
+    child.once("exit", (code) => {
+      if (nativeSourceProcess !== child) return;
+      if (nativeSourceOwner && !nativeSourceOwner.isDestroyed()) nativeSourceOwner.send("source:status", { status: code === 0 ? "disconnected" : "error", name: code === 0 ? "Source disconnected" : `Native receiver stopped (${code})` });
+      nativeSourceProcess = null;
+      nativeSourceOwner = null;
+      nativeFramePending = false;
+    });
+    return { ok: true };
+  });
+
+  ipcMain.handle("source:disconnect", async () => { await stopNativeSource(); return { ok: true }; });
+  ipcMain.handle("viewer:fullscreen", async (event, enabled) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) return { ok: false };
+    window.setFullScreen(Boolean(enabled));
+    return { ok: true };
+  });
+  ipcMain.on("source:frame-ready", (event) => {
+    if (event.sender !== nativeSourceOwner) return;
+    nativeFramePending = false;
+    try { nativeSourceProcess?.stdin?.write("a"); } catch {}
+  });
+
+  ipcMain.handle("export:save", async (_event, payload) => {
+    const filename = path.basename(String(payload?.filename || "lo2s-scene.glb"));
+    const category = payload?.category === "png" ? "png" : "scene3d";
+    const extension = path.extname(filename).slice(1).toLowerCase();
+    const labels = { png: "PNG image", glb: "glTF Binary", zip: "ZIP package", mvr: "MVR 1.5 scene meshes", obj: "Wavefront OBJ", gltf: "glTF scene" };
+    const directories = await loadExportDirectories();
+    const result = await dialog.showSaveDialog({
+      title: category === "png" ? "Export LO2S PNG" : "Export LO2S 3D scene",
+      defaultPath: path.join(directories[category] || app.getPath("documents"), filename),
+      filters: [{ name: labels[extension] || "3D scene", extensions: [extension || "glb"] }],
+    });
+    if (result.canceled || !result.filePath) return { ok: false, cancelled: true };
+    try {
+      await fs.promises.writeFile(result.filePath, Buffer.from(payload.data));
+      await rememberExportDirectory(category, result.filePath);
+      return { ok: true, path: result.filePath };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
+
+  session.defaultSession.setPermissionCheckHandler((_webContents, permission) => permission === "media" || permission === "fullscreen");
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => callback(permission === "media" || permission === "fullscreen"));
+
   session.defaultSession.on("will-download", (_event, item) => {
-    item.setSaveDialogOptions({ title: "Save LO2S test pattern", defaultPath: item.getFilename(), filters: [{ name: "PNG image", extensions: ["png"] }] });
+    const extension = path.extname(item.getFilename()).slice(1).toLowerCase() || "png";
+    item.setSaveDialogOptions({ title: "Save LO2S file", defaultPath: item.getFilename(), filters: [{ name: extension === "png" ? "PNG image" : "LO2S export", extensions: [extension] }] });
   });
 
   createWindow();
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 
-app.on("before-quit", stopResolumeLink);
+app.on("before-quit", () => { stopResolumeLink(); void stopNativeSource(); });
 app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
