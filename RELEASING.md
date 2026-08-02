@@ -17,7 +17,10 @@ Every LO2S Pattern Lab release must include a version-to-version update log. A s
 5. Run the application tests and production build before creating the tag.
 6. Build and launch-check the Windows portable executable when desktop code changed.
 7. Publish through a pull request and wait for required checks before merging or updating the public release.
-8. Mark experimental releases as prereleases and state clearly whether they replace the main download or use a separate application identity.
+8. Keep **Beta** in the version and title whenever the product is still being tested, but use GitHub's release status according to the distribution goal:
+   - publish it as a normal **Latest** release when it is the primary public download and broad testing/feedback is wanted;
+   - use GitHub **prerelease** only when the build should remain secondary to another recommended release.
+   State clearly whether the build is the main download and whether it uses a separate application identity.
 
 ## Changelog categories
 
