@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, protocol, session } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, net, protocol, session, shell } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFile, spawn } = require("node:child_process");
@@ -18,6 +18,32 @@ let nativeFramePending = false;
 let exportDirectories = null;
 const execFileAsync = promisify(execFile);
 let nativeBridgePath = path.join(appRoot, "native", "lo2s-source-bridge.exe");
+
+function numericVersion(value) {
+  return String(value || "").replace(/^v/i, "").split("-")[0].split(".").map((part) => Number.parseInt(part, 10) || 0);
+}
+
+function isNewerVersion(candidate, current) {
+  const left = numericVersion(candidate), right = numericVersion(current);
+  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+    if ((left[index] || 0) !== (right[index] || 0)) return (left[index] || 0) > (right[index] || 0);
+  }
+  return false;
+}
+
+async function checkForUpdate() {
+  try {
+    const response = await net.fetch("https://api.github.com/repos/johnjjdave/lo2s-pattern-lab/releases/latest", {
+      headers: { Accept: "application/vnd.github+json", "User-Agent": `LO2S-Pattern-Lab/${app.getVersion()}` },
+    });
+    if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
+    const release = await response.json();
+    const latestVersion = String(release.tag_name || "").replace(/^v/i, "");
+    return { ok: true, available: isNewerVersion(latestVersion, app.getVersion()), currentVersion: app.getVersion(), latestVersion, name: release.name || release.tag_name, url: release.html_url };
+  } catch (error) {
+    return { ok: false, available: false, currentVersion: app.getVersion(), error: error.message || "Unable to check for updates." };
+  }
+}
 
 async function loadExportDirectories() {
   if (exportDirectories) return exportDirectories;
@@ -220,22 +246,12 @@ function createWindow() {
       preload: path.join(appRoot, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
       backgroundThrottling: false,
     },
   });
 
   window.once("ready-to-show", () => window.show());
-  const reportFullscreen = () => {
-    if (!window.isDestroyed()) window.webContents.send("viewer:fullscreen-changed", window.isFullScreen());
-  };
-  window.on("enter-full-screen", reportFullscreen);
-  window.on("leave-full-screen", reportFullscreen);
-  window.webContents.on("before-input-event", (event, input) => {
-    if (input.key !== "Escape" || !window.isFullScreen()) return;
-    event.preventDefault();
-    window.setFullScreen(false);
-  });
   window.on("closed", () => { stopResolumeLink(); void stopNativeSource(); });
   window.loadFile(path.join(appRoot, "dist", "index.html"));
 }
@@ -316,10 +332,11 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle("source:disconnect", async () => { await stopNativeSource(); return { ok: true }; });
-  ipcMain.handle("viewer:fullscreen", async (event, enabled) => {
-    const window = BrowserWindow.fromWebContents(event.sender);
-    if (!window) return { ok: false };
-    window.setFullScreen(Boolean(enabled));
+  ipcMain.handle("app:check-update", checkForUpdate);
+  ipcMain.handle("app:open-external", async (_event, requestedUrl) => {
+    const url = new URL(String(requestedUrl || ""));
+    if (url.protocol !== "https:" || url.hostname !== "github.com") return { ok: false };
+    await shell.openExternal(url.href);
     return { ok: true };
   });
   ipcMain.on("source:frame-ready", (event) => {

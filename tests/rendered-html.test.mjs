@@ -88,3 +88,47 @@ test("keeps pixel-map and arithmetic features in the product source", async () =
   assert.match(css, /data-fullscreen-mode=actual/);
   assert.match(layout, /Resolume pixel maps/);
 });
+
+test("keeps the desktop beta hotfix safeguards in source", async () => {
+  const [page, geometry, preload, desktop, css] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/three-simulation.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../desktop/preload.cjs", import.meta.url), "utf8"),
+    readFile(new URL("../desktop/electron-main.cjs", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(page, /Pattern Lab V\.\{DISPLAY_VERSION\}/);
+  assert.match(page, /max="360"/);
+  assert.match(page, /invalidCurvedDepthSlices/);
+  assert.match(page, /document\.fullscreenElement === host/);
+  assert.match(page, /lo2s-update-dismissed/);
+  assert.match(geometry, /clamp\(curvature\.horizontal \|\| 0, -360, 360\)/);
+  assert.match(geometry, /clamp\(curvature\.vertical \|\| 0, -360, 360\)/);
+  assert.match(geometry, /closedHorizontal/);
+  assert.match(geometry, /closedVertical/);
+  assert.match(page, /Locked by vertical curve/);
+  assert.match(page, /Locked by horizontal curve/);
+  assert.match(page, /function CurvatureNumberInput/);
+  assert.match(page, /evaluateExpression\(draft, true\)/);
+  assert.match(page, /onCommit=\{\(value\) => applySimulationCurvature\("horizontal", value\)\}/);
+  assert.match(page, /onCommit=\{\(value\) => applySimulationCurvature\("vertical", value\)\}/);
+  assert.match(page, /increment = shifted \? 0\.5 : 0\.1/);
+  assert.match(page, /className="field-stepper"/);
+  assert.match(page, /const PIXEL_PITCH_PRESETS = \[1\.2, 1\.5, 1\.9, 2\.5, 2\.6, 2\.9, 3\.9, 4\.8, 5\.9, 10\]/);
+  assert.match(page, /aria-label="Pixel pitch presets"/);
+  assert.match(page, /function PreciseNumberInput/);
+  assert.match(page, /const lineScale = clamp\(config\.lineWidth, 1, 12\)/);
+  assert.match(page, /Math\.max\(2, width \/ 1000\) \* lineScale/);
+  assert.match(css, /\.pitch-presets/);
+  assert.match(css, /\.range-row\.precise>\.precise-stepper\{grid-column:2!important;grid-row:2/);
+  assert.match(page, /lo2s-history-navigation/);
+  assert.doesNotMatch(page, /event\.target instanceof HTMLInputElement \|\| event\.target instanceof HTMLTextAreaElement/);
+  assert.match(css, /\.precise-stepper/);
+  assert.match(page, /onNativeSourceMetrics/);
+  assert.match(preload, /app:check-update/);
+  assert.match(preload, /lo2s-shared-frame\.node/);
+  assert.match(preload, /conversionMs/);
+  assert.match(desktop, /releases\/latest/);
+  assert.doesNotMatch(preload, /viewer:fullscreen/);
+  assert.doesNotMatch(css, /viewer-fullscreen/);
+});

@@ -45,4 +45,7 @@ next-env.d.ts
 /desktop/node_modules/
 /desktop/dist/
 /desktop/release/
+/desktop/work/
 /desktop/src-tauri/
+/native/build/
+/native/addon/build/

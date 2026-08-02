@@ -93,10 +93,10 @@ export function createSliceGeometry(slice: SimulationSlice, pitchM: number, dept
   const local = sourcePoints.map((point) => new THREE.Vector2((point.x - pivotX) * pitchM, (bottomY - point.y) * pitchM));
   const widthM = Math.max(pitchM, slice.input.width * pitchM), heightM = Math.max(pitchM, slice.input.height * pitchM);
   const centerX = (slice.input.x + slice.input.width / 2 - pivotX) * pitchM, centerY = heightM / 2;
-  const horizontalRad = THREE.MathUtils.degToRad(THREE.MathUtils.clamp(curvature.horizontal || 0, -180, 180));
-  const verticalRad = THREE.MathUtils.degToRad(THREE.MathUtils.clamp(curvature.vertical || 0, -180, 180));
-  const horizontalSegments = Math.max(1, Math.min(64, Math.ceil(Math.abs(curvature.horizontal || 0) / 3)));
-  const verticalSegments = Math.max(1, Math.min(64, Math.ceil(Math.abs(curvature.vertical || 0) / 3)));
+  const horizontalRad = THREE.MathUtils.degToRad(THREE.MathUtils.clamp(curvature.horizontal || 0, -360, 360));
+  const verticalRad = THREE.MathUtils.degToRad(THREE.MathUtils.clamp(curvature.vertical || 0, -360, 360));
+  const horizontalSegments = Math.max(1, Math.min(128, Math.ceil(Math.abs(curvature.horizontal || 0) / 3)));
+  const verticalSegments = Math.max(1, Math.min(128, Math.ceil(Math.abs(curvature.vertical || 0) / 3)));
   const xMin = -slice.input.width * pitchM / 2 + centerX, xMax = slice.input.width * pitchM / 2 + centerX;
   const yMin = 0, yMax = heightM;
   const frontPositions: number[] = [], frontUvs: number[] = [], frontNormals: number[] = [];
@@ -113,9 +113,11 @@ export function createSliceGeometry(slice: SimulationSlice, pitchM: number, dept
     const psi = Math.abs(verticalRad) < 1e-7 ? 0 : yFromCenter * verticalRad / heightM;
     const x = Math.abs(horizontalRad) < 1e-7 ? point.x : centerX + widthM / horizontalRad * Math.sin(phi);
     const y = Math.abs(verticalRad) < 1e-7 ? point.y : centerY + heightM / verticalRad * Math.sin(psi);
-    const zHorizontal = Math.abs(horizontalRad) < 1e-7 ? 0 : widthM / horizontalRad * (1 - Math.cos(phi));
-    const zVertical = Math.abs(verticalRad) < 1e-7 ? 0 : heightM / verticalRad * (1 - Math.cos(psi));
-    const normal = new THREE.Vector3(-Math.sin(phi) * Math.cos(psi), -Math.cos(phi) * Math.sin(psi), Math.cos(phi) * Math.cos(psi)).normalize();
+    // Positive horizontal curvature is the outside of the LED cylinder. Its
+    // emitting face bends away from the viewer and its body stays behind it.
+    const zHorizontal = Math.abs(horizontalRad) < 1e-7 ? 0 : -widthM / horizontalRad * (1 - Math.cos(phi));
+    const zVertical = Math.abs(verticalRad) < 1e-7 ? 0 : -heightM / verticalRad * (1 - Math.cos(psi));
+    const normal = new THREE.Vector3(Math.sin(phi) * Math.cos(psi), Math.cos(phi) * Math.sin(psi), Math.cos(phi) * Math.cos(psi)).normalize();
     return { position: new THREE.Vector3(x, y, zHorizontal + zVertical), normal };
   };
   const pushVertex = (positions: number[], uvs: number[], normals: number[], position: THREE.Vector3, uv: [number, number], normal: THREE.Vector3) => {
@@ -133,8 +135,15 @@ export function createSliceGeometry(slice: SimulationSlice, pitchM: number, dept
       for (let index = 1; index + 1 < clipped.length; index += 1) pushFrontTriangle(clipped[0], clipped[index], clipped[index + 1]);
     }
   }
+  const closedHorizontal = Math.abs(Math.abs(horizontalRad) - Math.PI * 2) < 1e-5;
+  const closedVertical = Math.abs(Math.abs(verticalRad) - Math.PI * 2) < 1e-5;
   local.forEach((point, index) => {
     const nextPoint = local[(index + 1) % local.length], delta = nextPoint.clone().sub(point);
+    const isClosedSeam = (closedHorizontal && Math.abs(delta.y) > 1e-7 && Math.abs(delta.x) < 1e-7
+      && (Math.abs(point.x - xMin) < 1e-6 || Math.abs(point.x - xMax) < 1e-6))
+      || (closedVertical && Math.abs(delta.x) > 1e-7 && Math.abs(delta.y) < 1e-7
+      && (Math.abs(point.y - yMin) < 1e-6 || Math.abs(point.y - yMax) < 1e-6));
+    if (isClosedSeam) return;
     const steps = Math.max(1, Math.min(64, Math.ceil(Math.max(Math.abs(delta.x) / widthM * horizontalSegments, Math.abs(delta.y) / heightM * verticalSegments))));
     for (let step = 0; step < steps; step += 1) {
       const a2 = point.clone().lerp(nextPoint, step / steps), b2 = point.clone().lerp(nextPoint, (step + 1) / steps);
@@ -476,7 +485,9 @@ export default function ThreeSimulation(props: Props) {
       const saved = props.transforms[slice.id];
       mesh.position.fromArray(saved?.position || initialPosition);
       if (saved) mesh.rotation.fromArray([...saved.rotation, "XYZ"]);
-      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 20), new THREE.LineBasicMaterial({ color: props.selectedIds.includes(slice.id) ? 0xffffff : 0x546166, transparent: true, opacity: props.selectedIds.includes(slice.id) ? 1 : 0.58, depthWrite: false }));
+      const selected = props.selectedIds.includes(slice.id);
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 20), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: selected ? 1 : 0, depthWrite: false }));
+      edges.visible = selected;
       edges.userData.nonInteractive = true;
       mesh.add(edges);
       runtime.scene.add(mesh);
@@ -491,7 +502,7 @@ export default function ThreeSimulation(props: Props) {
     if (!runtime) return;
     runtime.meshes.forEach((mesh, id) => {
       const edges = mesh.children[0] as THREE.LineSegments<THREE.EdgesGeometry, THREE.LineBasicMaterial> | undefined;
-      if (edges) { edges.material.color.set(props.selectedIds.includes(id) ? 0xffffff : 0x546166); edges.material.opacity = props.selectedIds.includes(id) ? 1 : 0.58; }
+      if (edges) { const selected = props.selectedIds.includes(id); edges.visible = selected; edges.material.opacity = selected ? 1 : 0; }
     });
     const selected = props.selectedIds.map((id) => runtime.meshes.get(id)).filter(Boolean) as SliceObject[];
     if (!selected.length) { runtime.transform.detach(); runtime.renderer.render(runtime.scene, runtime.camera); return; }

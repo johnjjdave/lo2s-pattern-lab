@@ -6,6 +6,22 @@ All notable user-facing changes to LO2S Pattern Lab are documented here. Each re
 
 This is the first public beta of the 3D Simulation workspace and the main public download after v1.0.1. The Windows portable build retains a separate beta application identity so it does not replace the installed stable application.
 
+### Current v1.2.0 Beta refresh
+
+- Replaced the NDI renderer IPC frame path with a reusable three-slot shared-memory transport and added receiver, conversion, copy, overwrite, and displayed-frame instrumentation.
+- Extended horizontal and vertical curvature to -360 degrees through +360 degrees, added closed full-cylinder seams, and made the two curve axes mutually exclusive to match physical LED construction.
+- Fixed manual negative curvature entry so a leading minus sign remains editable and signed arithmetic commits correctly.
+- Removed the automatic depth override above 90 degrees; curved extrusion now follows the selected depth, with validation when depth exceeds the inner radius.
+- Hid unselected front-face outlines so adjacent LED slices read as one seamless display while preserving selected-screen feedback.
+- Added a consistent minimal increment/decrement arrow design to numeric controls throughout Test Patterns, Resolume Pixel Map, and 3D Simulation.
+- Changed transform-field wheel increments to 0.1 normally and 0.5 while holding Shift.
+- Made Ctrl+Z, Ctrl+Shift+Z, and Ctrl+Y work while parameter inputs have focus.
+- Prevented unfinished transform and curvature drafts from carrying into a newly selected slice.
+- Added P1.2, P1.5, P1.9, P2.5, P2.6, P2.9, P3.9, P4.8, P5.9, and P10 pixel-pitch preset buttons while preserving manual arithmetic entry.
+- Fixed Test Patterns Line Width so it now controls the metric grid, centre axes, border, cross, circles, and safe-area strokes.
+- Preserved the original compact slider/value layout while applying the unified arrow design.
+- Corrected source-panel spacing, removed redundant 3D status content, and added visible application version details plus design-matched update notifications.
+
 ### New features
 
 #### 3D Simulation workspace
@@ -17,7 +33,7 @@ This is the first public beta of the 3D Simulation workspace and the main public
 - Maps the full composition texture across all screens with cropped, clamped UVs for pixel-map-accurate WYSIWYG playback; textures do not tile or repeat.
 - Uses unlit, emissive-style LED faces so source colors and brightness are not altered by scene lighting, distance, or material falloff.
 - Adds configurable screen extrusion from 1–50 cm, with a 10 cm default, direct value entry, slider control, and reset.
-- Adds independent horizontal and vertical curvature from -180° to +180°, direct value entry, sliders, reset controls, smooth subdivisions, and curved extrusion.
+- Adds mutually exclusive horizontal or vertical curvature from -360° to +360°, direct value entry, sliders, reset controls, smooth subdivisions, closed full-cylinder seams, and curved extrusion.
 - Adds independently controlled floor visibility, one-metre grid visibility, and scene background brightness.
 - Uses a fixed 2,000 × 2,000 metre world-space floor and one-metre grid rather than a camera-following visual plane.
 
