@@ -2,83 +2,129 @@
   <img src="public/brand/lo2s-pattern-lab-icon.png" width="180" alt="LO2S Pattern Lab icon">
 </p>
 
-# LO2S - Pattern Lab
+# LO2S Pattern Lab
 
-LO2S Pattern Lab is an open-source, pixel-perfect LED screen test-pattern and Resolume pixel-map generator. It is designed for technical production workflows where physical dimensions, native pixel resolution, slice geometry, and export accuracy matter.
+LO2S Pattern Lab is an open-source LED test-pattern, Resolume pixel-map, and 3D WYSIWYG simulation workspace. It is designed for technical production workflows where physical dimensions, native pixel resolution, slice geometry, UV accuracy, and reliable exports matter.
 
-[Open the web app](https://patternlab.lo2s.com/) · [Download LO2S Pattern Lab v1.2.0 Beta](https://github.com/johnjjdave/lo2s-pattern-lab/releases/tag/v1.2.0-beta)
+**Current release: LO2S Pattern Lab v1.2.0 Beta**
 
-## Highlights
+[Open the web app](https://patternlab.lo2s.com/) · [Download the Windows portable app](https://github.com/johnjjdave/lo2s-pattern-lab/releases/tag/v1.2.0-beta) · [View the source tag](https://github.com/johnjjdave/lo2s-pattern-lab/tree/v1.2.0-beta)
 
-- Metric wall calculator linking physical width, height, raster size, and pixel pitch
-- Arithmetic expressions directly inside number fields
+## What is included
+
+### Test Patterns
+
+- Linked physical-size, raster-resolution, pixel-pitch, and cabinet calculations
+- Arithmetic expressions inside supported numeric fields
 - Metric grid, cabinet IDs, color bars, grayscale, and native pixel-check patterns
 - Configurable labels, guides, circles, safe area, center marker, and uploaded logos
-- Resolume Advanced Output XML import with input-map and per-screen output-map rendering
+- Pixel-accurate Fit Canvas and Actual 1:1 viewing with cursor-focused zoom and panning
+- Black or transparent PNG export with remembered save locations in the desktop app
+
+### Resolume Pixel Map
+
+- Resolume Advanced Output XML import
+- Composition input-map and per-screen output-map rendering
 - Automatic per-slice color palettes with global and selected-slice overrides
-- Slice selection by click, multi-select, or drag marquee
-- Pixel-accurate Fit Canvas and Actual 1:1 viewing, cursor-focused zoom, and panning
-- Black or transparent PNG export, selected-slice export, and multi-screen output export
-- Local project save/load and an offline Windows desktop build
-- Experimental 3D Simulation with physical LED geometry, NDI/Spout inputs, curved screens, saved transforms, and scene export
+- Click, multi-select, and drag-marquee slice selection
+- Per-slice information, physical dimensions, and output-map diagnostics
+- Selected-slice and multi-screen PNG export
+- Optional linked XML workflow in the Windows app for automatic map refresh
+
+### 3D Simulation — Beta
+
+- Every Resolume XML slice becomes a separately selectable, physically scaled LED screen
+- Pixel-map-accurate cropped UV mapping across the full composition
+- Emissive LED materials that preserve the source color and brightness
+- Move and rotate gizmos with local/world axes and arithmetic-enabled transform fields
+- Bottom-left, bottom-centre, or bottom-right pivots globally or per slice
+- Horizontal and vertical screen curvature with smooth curved extrusion
+- Configurable extrusion depth, floor, metre grid, and scene background brightness
+- Multi-selection, undo/redo, saved camera state, and beta project save/load
+- GLB, glTF package, OBJ package, and MVR 1.5 scene export with geometry, UVs, names, and transforms
+
+## Live video sources
+
+The Windows desktop beta supports:
+
+- Pattern Generator at native quality
+- Video Devices such as webcams and capture devices
+- NDI source discovery and reception
+- Spout sender discovery and reception
+- Low Latency and High Quality modes
+- Global source routing with per-slice overrides
+
+NDI and Spout require the Windows desktop application and its native source bridge. They are not available in the hosted browser version. Higher-resolution live feeds can increase GPU, decoding, and network load depending on the source resolution and number of active feeds.
 
 ## Windows release
 
-The primary Windows download is [LO2S Pattern Lab v1.2.0 Beta](https://github.com/johnjjdave/lo2s-pattern-lab/releases/tag/v1.2.0-beta). It includes the experimental 3D Simulation workspace alongside Test Patterns and Resolume Pixel Map.
+Download `LO2S-Pattern-Lab-3D-Beta-1.2.0-beta-Portable.exe` from the [v1.2.0 Beta release](https://github.com/johnjjdave/lo2s-pattern-lab/releases/tag/v1.2.0-beta). The portable build does not require installation and uses a separate beta application identity.
 
-Version 1.2.0 Beta is an unsigned open-source beta release. Windows Defender SmartScreen may therefore show an “unknown publisher” warning. The project is preparing an application for free open-source signing through SignPath Foundation. You can verify a download using the SHA-256 checksum published with each release.
+SHA-256:
 
-The desktop application runs locally and does not upload projects, Resolume XML files, logos, or exported images.
+```text
+8A7CC3E24951EAC3881E04B4214842A163B0824B154EEBBB20F270BA154591B3
+```
 
-## Resolume workflow
+This is an unsigned open-source beta. Windows Defender SmartScreen may show an “unknown publisher” warning. Verify the executable using the checksum above or the digest shown on GitHub Releases.
 
-1. Open **Resolume Pixel Map**.
-2. Use **Choose XML** for a one-time manual import, or **Link Resolume Map** in the Windows app.
-3. Linked mode watches Resolume Arena's Advanced Output preset folder, loads the most recently saved XML, and refreshes the map whenever Resolume saves a change.
-4. Choose the input map or an output screen.
-5. Adjust global settings, or select one or more slices for overrides.
-6. Export the input map, selected slices, or all output screens as PNG files.
+The desktop application processes projects, Resolume XML files, logos, source frames, and exports locally. It does not upload project content to LO2S servers.
 
-Checker blocks are calculated from the LED cabinet dimensions and pixel pitch. They are not arbitrary decorative grid sizes.
+## Recommended Resolume workflow
+
+1. Configure the composition and slices in Resolume Advanced Output.
+2. Open **Resolume Pixel Map** in Pattern Lab and import the XML preset.
+3. Confirm the composition, physical scale, slice sizes, and pixel-map output.
+4. Open **3D Simulation** and arrange the slices to match the physical LED setup.
+5. Select Pattern Generator, Video Devices, NDI, or Spout as the global source.
+6. Apply per-slice source overrides only where needed.
+7. Save the beta project and export the required 3D scene format.
+
+Checker blocks are calculated from LED cabinet dimensions and pixel pitch; they are not arbitrary decorative grid sizes.
+
+## Beta notes
+
+- The web app provides the full browser-compatible Pattern Lab interface, including 3D layout and pattern simulation.
+- NDI and Spout are Windows desktop features because browsers cannot directly access those native protocols.
+- MVR export targets version 1.5 for broader compatibility with current lighting and visualization software.
+- Live-input performance depends on source resolution, codec, network conditions, GPU, and scene complexity.
+- Report reproducible problems through [GitHub Issues](https://github.com/johnjjdave/lo2s-pattern-lab/issues).
 
 ## Development
 
 Requirements:
 
 - Node.js 22.13 or newer
-- npm
-- Windows is required to package the Windows desktop executable
+- Corepack with pnpm
+- Windows and Visual Studio C++ build tools when rebuilding the native NDI/Spout source bridge
 
-Install and run the hosted application locally:
-
-```bash
-npm install
-npm run dev
-```
-
-Build and test the hosted application:
+Install dependencies and build the web application:
 
 ```bash
-npm test
-```
-
-Build the Electron desktop application:
-
-```bash
-npm install
 corepack enable
+pnpm install --frozen-lockfile
+pnpm exec vite build --config desktop/vite.config.ts
+```
+
+Run the project tests:
+
+```bash
+pnpm test
+```
+
+Package the Windows desktop application:
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
 pnpm --dir desktop install --frozen-lockfile
-npx vite build --config desktop/vite.config.ts
+pnpm exec vite build --config desktop/vite.config.ts
 pnpm --dir desktop exec electron-builder --win portable --x64
 ```
 
-## Privacy
-
-The offline desktop application does not transfer information to networked systems. The hosted preview is delivered over the web but performs pattern generation and file processing locally in the browser.
-
 ## Licence and trademarks
 
-The source code is released under the [MIT License](LICENSE). The bundled Geist and Geist Mono fonts are distributed under the [SIL Open Font License 1.1](public/brand/OFL.txt).
+The source code is released under the [MIT License](LICENSE). Bundled fonts are distributed under the [SIL Open Font License 1.1](public/brand/OFL.txt).
 
 LO2S and the LO2S logo are trademarks of their respective owner. The open-source licence does not grant permission to represent modified versions as official LO2S releases.
 
