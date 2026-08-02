@@ -115,7 +115,6 @@ This is the first public beta of the 3D Simulation workspace and the main public
 ### Release artifact
 
 - Windows portable: `LO2S-Pattern-Lab-3D-Beta-1.2.0-beta-Portable.exe`
-- SHA-256: `8A7CC3E24951EAC3881E04B4214842A163B0824B154EEBBB20F270BA154591B3`
 
 ## [1.0.1] - 2026-07-31
 

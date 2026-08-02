@@ -11,8 +11,8 @@ Every LO2S Pattern Lab release must include a version-to-version update log. A s
    - bug fixes from the previous version;
    - compatibility or behavior changes;
    - known limitations;
-   - packaged artifact names and checksums when applicable.
-3. Update the current version, download link, source tag, and checksum in `README.md`.
+   - packaged artifact names when applicable.
+3. Update the current version, download link, and source tag in `README.md`.
 4. Use the same complete changelog section as the GitHub release notes; a shorter highlights block may appear above it, but must not replace it.
 5. Run the application tests and production build before creating the tag.
 6. Build and launch-check the Windows portable executable when desktop code changed.

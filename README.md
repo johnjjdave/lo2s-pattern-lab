@@ -62,13 +62,7 @@ NDI and Spout require the Windows desktop application and its native source brid
 
 Download `LO2S-Pattern-Lab-3D-Beta-1.2.0-beta-Portable.exe` from the [v1.2.0 Beta release](https://github.com/johnjjdave/lo2s-pattern-lab/releases/tag/v1.2.0-beta). The portable build does not require installation and uses a separate beta application identity.
 
-SHA-256:
-
-```text
-8A7CC3E24951EAC3881E04B4214842A163B0824B154EEBBB20F270BA154591B3
-```
-
-This is an unsigned open-source beta. Windows Defender SmartScreen may show an “unknown publisher” warning. Verify the executable using the checksum above or the digest shown on GitHub Releases.
+This is an unsigned open-source beta. Windows Defender SmartScreen may show an “unknown publisher” warning.
 
 The desktop application processes projects, Resolume XML files, logos, source frames, and exports locally. It does not upload project content to LO2S servers.
 
